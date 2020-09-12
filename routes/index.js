@@ -74,8 +74,46 @@ router.get('/download', async(req, res)=>{
     }
 })
 
-router.get('/gettagsonly', async(req,res)=>{
-    const song = new Song('Twenty One pilots', 'heathens')
+//QUERY PARAMS
+//1- title (optional)
+//2- artist (optional)
+//3- videourl (required)
+//4- musicbrainz (optional)(boolean)
+//5- discogs (optional)(boolean)
+//6- lastfm (optional)(boolean)
+router.get('/getcoverarts', async(req,res)=>{
+    let songTitle = ''
+    let songArtist = ''
+    if(req.query.artist && req.query.title){
+        songTitle = req.query.title
+        songArtist = req.query.artist
+    }
+    else{
+        try{
+            const result = await ytdl.getInfo(req.query.videourl, {},)
+            if (result.videoDetails.media && result.videoDetails.media.song && result.videoDetails.media.artist){
+                songTitle = result.videoDetails.media.song
+                songArtist = result.videoDetails.media.artist
+            }
+            else{
+                const simpleString = result.videoDetails.title.replace(/ *\([^)]*\) */g, "");
+                console.log(simpleString)
+                const stringArr = simpleString.split('-')
+                if(stringArr.length>1){
+                    songArtist = stringArr[0].toLowerCase().trim()
+                    songTitle = stringArr[1].toLowerCase().trim()
+                }
+                else{
+                    res.send("Couldn't extract enough data about the music from the url, try adding artist and track separately")
+                }
+            }
+        }
+        catch(e){
+            res.send('INVALID SONG URL, try sending title and artist name as a query')
+        }
+    }
+    console.log(songArtist+'-'+songTitle)
+    const song = new Song(songArtist,songTitle)
     try{
         let response = []
         if (req.query.musicbrainz){
@@ -87,9 +125,12 @@ router.get('/gettagsonly', async(req,res)=>{
             response = [...response, ...cover2]
         }
         if (req.query.lastfm){
-            console.log('yos')
             const cover3 = await song.getCoverArtsFromLastFM()
             response = [...response, ...cover3]
+        }
+        if (req.query.deezer){
+            const cover4 = await song.getCoverArtsFromDeezer()
+            response = [...response, ...cover4]
         }
         res.send(response)
     }
@@ -98,8 +139,62 @@ router.get('/gettagsonly', async(req,res)=>{
     }
 })
 
-router.get('/downloadonly', (req,res)=>{
-
+router.get('/gettags', async(req,res)=>{
+    let songTitle = ''
+    let songArtist = ''
+    if(req.query.artist && req.query.title){
+        songTitle = req.query.title
+        songArtist = req.query.artist
+    }
+    else{
+        try{
+            const result = await ytdl.getInfo(req.query.videourl, {},)
+            if (result.videoDetails.media && result.videoDetails.media.song && result.videoDetails.media.artist){
+                songTitle = result.videoDetails.media.song
+                songArtist = result.videoDetails.media.artist
+            }
+            else{
+                const simpleString = result.videoDetails.title.replace(/ *\([^)]*\) */g, "");
+                console.log(simpleString)
+                const stringArr = simpleString.split('-')
+                if(stringArr.length>1){
+                    songArtist = stringArr[0].toLowerCase().trim()
+                    songTitle = stringArr[1].toLowerCase().trim()
+                }
+                else{
+                    res.send("Couldn't extract enough data about the music from the url, try adding artist and track separately")
+                }
+            }
+        }
+        catch(e){
+            res.send('INVALID SONG URL, try sending title and artist name as a query')
+        }
+    }
+    console.log(songArtist+'-'+songTitle)
+    const song = new Song(songArtist, songTitle)
+    try{
+        let response = []
+        if (req.query.musicbrainz){
+            const cover1 = await song.tagMusicWithMusicBrainz()
+            response = [...response, ...cover1]
+        }
+        if (req.query.discogs){
+            const cover2 = await song.tagMusicWithDiscogs()
+            response = [...response, ...cover2]
+        }
+        if (req.query.lastfm){
+            const cover3 = await song.tagMusicWithLastFM()
+            response = [...response, ...cover3]
+        }
+        if (req.query.deezer){
+            const cover4 = await song.tagMusicWithDeezer()
+            response = [...response, ...cover4]
+        }
+        res.send(response)
+    }
+    catch(e){
+        res.send(e)
+    }
 })
 
 module.exports = router;
