@@ -116,19 +116,19 @@ router.get('/getcoverarts', async(req,res)=>{
     const song = new Song(songArtist,songTitle)
     try{
         let response = []
-        if (req.query.musicbrainz){
+        if (req.query.musicbrainz==='true'){
             const cover1 = await song.getCoverArtsFromMusicBrainz()
             response = [...response, ...cover1]
         }
-        if (req.query.discogs){
+        if (req.query.discogs==='true'){
             const cover2 = await song.getCoverArtsFromDiscogs()
             response = [...response, ...cover2]
         }
-        if (req.query.lastfm){
+        if (req.query.lastfm==='true'){
             const cover3 = await song.getCoverArtsFromLastFM()
             response = [...response, ...cover3]
         }
-        if (req.query.deezer){
+        if (req.query.deezer==='true'){
             const cover4 = await song.getCoverArtsFromDeezer()
             response = [...response, ...cover4]
         }
