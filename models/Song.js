@@ -1,16 +1,5 @@
 const axios = require('axios')
 
-const getImage = (url) => {
-    try{
-        const buffer = axios.get(url, {
-            responseType: 'arraybuffer'
-        })
-        return buffer
-    }
-    catch(e){
-        return e
-    }
-}
 
 class Song {
     // constructor(rawName) {
@@ -43,6 +32,7 @@ class Song {
             return (
                 [
                     {
+                        source:"LastFM",
                         id: track.url,
                         title: track.name,
                         artist: track.artist.name.split(", "),
@@ -54,6 +44,7 @@ class Song {
         }
         catch(e){
             console.log('Problem Fetching tags with LASTFM')
+            console.log(e)
             return []
         }
     }
@@ -205,7 +196,8 @@ class Song {
                 if(result.cover_image){
                     return ({
                         source: "Discogs",
-                        image: result.cover_image
+                        image: result.cover_image,
+                        thumbnails: {}
                     })
                 }
             })
@@ -250,6 +242,7 @@ class Song {
         }
         catch(e){
             console.log('Problem Fetching covers with LASTFM')
+            console.log(e)
             return e
         }
     }

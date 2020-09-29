@@ -4,8 +4,21 @@ const fs = require('fs')
 const path = require('path')
 const ID3Writer = require('browser-id3-writer');
 const Song = require('../models/Song')
+const axios = require('axios')
 var router = express.Router();
 const publicPath = path.join(__dirname,'../public')
+
+const getImage = async(url) => {
+    try{
+        const buffer = await axios.get(url, {
+            responseType: 'arraybuffer'
+        })
+        return buffer.data
+    }
+    catch(e){
+        return e
+    }
+}
 
 /* GET home page. */
 router.get('/', async(req, res, next) => {
@@ -18,55 +31,67 @@ router.get('/', async(req, res, next) => {
 //3- videourl (required)
 
 router.get('/download', async(req, res)=>{
-    let songTitle = ''
-    let songArtist = ''
-    if(req.query.artist && req.query.title){
-        songTitle = req.query.title
-        songArtist = req.query.artist
-    }
-    else{
-        try{
-            const result = await ytdl.getInfo(req.query.videourl, {},)
-            songTitle = result.videoDetails.media.song
-            songArtist = result.videoDetails.media.artist
-        }
-        catch(e){
-            res.send('INVALID SONG URL, try sending title and artist name as a query')
-        }
-    }
-    const song = new Song(songArtist, songTitle)
+
+    const queries = req.query
+
     try{
-        const songInfo = await song.tagMusicWithDiscogs()
         const videoReadableStream = ytdl(req.query.videourl,
             {
                 filter: "audioonly",
                 quality: "highestaudio",
             })
+        let fileName = queries.artist+' - '+ queries.title
+        fileName = fileName.replace(/[/\\?%*:|"<>]/g, '');
+        const videoWritableStream = fs.createWriteStream(publicPath + '/audio/'+ fileName+'.mp3');
 
-        const videoWritableStream = fs.createWriteStream(publicPath + '/audio/video.mp3');
         const stream = videoReadableStream.pipe(videoWritableStream);
 
         stream.on('finish', async() => {
-
-            const songBuffer = fs.readFileSync(publicPath + '/audio/video.mp3');
-
+            console.log('finish')
+            const songBuffer = fs.readFileSync(publicPath + '/audio/'+fileName+'.mp3');
             const writer = new ID3Writer(songBuffer);
-            const tags = songInfo[0]
-            writer.setFrame('TIT2', songTitle)
-                .setFrame('TPE1', songArtist.split(', '))
-                .setFrame('TALB', 'Friday Night Lights')
-                .setFrame('TYER', 2004)
-                .setFrame('APIC', {
+            writer.setFrame('TIT2', queries.title).setFrame('TPE1', queries.artist)
+            if(queries.album){
+                writer.setFrame('TALB', queries.album)
+            }
+            if(queries.albumReleaseDate){
+                const date = new Date(queries.albumReleaseDate)
+                const day = date.getDate()
+                const month = date.getMonth()
+                const year = date.getFullYear()
+                // writer.setFrame('TDAT')
+                writer.setFrame('TYER', year)
+            }
+            if(queries.tracks){
+
+            }
+            if(queries.label){
+                writer.setFrame('TPUB', queries.label.toString())
+            }
+            if(queries.genre){
+                writer.setFrame('TCON', queries.genre)
+            }
+            if(queries.artistPicture){
+                const image = await getImage(queries.artistPicture)
+                writer.setFrame('APIC', {
+                    type: 8,
+                    data: image,
+                    description: 'Artist Image'
+                })
+            }
+            if(queries.coverArt){
+                const image = await getImage(queries.coverArt)
+                writer.setFrame('APIC', {
                     type: 3,
-                    data: songInfo.image,
-                    description: 'Super picture'
-                });
+                    data: image,
+                    description: 'Cover Art'
+                })
+            }
             writer.addTag();
 
             const taggedSongBuffer = Buffer.from(writer.arrayBuffer);
-            fs.writeFileSync(publicPath + '/audio/newvideo.mp3', taggedSongBuffer);
-            const file = publicPath + '/audio/newvideo.mp3'
-            res.download(file, 'shaaba.mp3');
+            fs.writeFileSync(publicPath + '/audio/'+fileName+'.mp3', taggedSongBuffer);
+            res.send({fileName: fileName+'.mp3'});
         });
     }
     catch(e){
@@ -74,6 +99,10 @@ router.get('/download', async(req, res)=>{
     }
 })
 
+router.get('/file', async(req, res)=>{
+    const file = publicPath + '/audio/'+req.query.filename
+    res.download(file, req.query.filename)
+})
 //QUERY PARAMS
 //1- title (optional)
 //2- artist (optional)
@@ -174,19 +203,19 @@ router.get('/gettags', async(req,res)=>{
     const song = new Song(songArtist, songTitle)
     try{
         let response = []
-        if (req.query.musicbrainz){
+        if (req.query.musicbrainz === 'true'){
             const cover1 = await song.tagMusicWithMusicBrainz()
             response = [...response, ...cover1]
         }
-        if (req.query.discogs){
+        if (req.query.discogs === 'true'){
             const cover2 = await song.tagMusicWithDiscogs()
             response = [...response, ...cover2]
         }
-        if (req.query.lastfm){
+        if (req.query.lastfm === 'true'){
             const cover3 = await song.tagMusicWithLastFM()
             response = [...response, ...cover3]
         }
-        if (req.query.deezer){
+        if (req.query.deezer === 'true'){
             const cover4 = await song.tagMusicWithDeezer()
             response = [...response, ...cover4]
         }
@@ -196,5 +225,6 @@ router.get('/gettags', async(req,res)=>{
         res.send(e)
     }
 })
+
 
 module.exports = router;
