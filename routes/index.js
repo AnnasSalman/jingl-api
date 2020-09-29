@@ -101,8 +101,20 @@ router.get('/download', async(req, res)=>{
 
 router.get('/file', async(req, res)=>{
     const file = publicPath + '/audio/'+req.query.filename
-    res.download(file, req.query.filename)
+    res.download(file, req.query.filename,(er)=>{
+        if(er){
+            console.log(er)
+        }
+        fs.unlink(file, (err) => {
+            if (err) {
+                console.error(err)
+                return
+            }
+            console.log('file Removed')
+        })
+    })
 })
+
 //QUERY PARAMS
 //1- title (optional)
 //2- artist (optional)
