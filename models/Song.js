@@ -1,5 +1,16 @@
 const axios = require('axios')
 
+const getImage = async(url) => {
+    try{
+        const buffer = await axios.get(url, {
+            responseType: 'arraybuffer'
+        })
+        return buffer.data
+    }
+    catch(e){
+        return e
+    }
+}
 
 class Song {
     // constructor(rawName) {
@@ -145,7 +156,7 @@ class Song {
 
     async getCoverArtsFromMusicBrainz(){
         try{
-            const releases =
+            let releases =
             await axios.request({
                 url: 'https://musicbrainz.org/ws/2/release',
                 method: "get",
@@ -153,6 +164,18 @@ class Song {
                     query: this.title.toLowerCase()+' AND '+'artist='+this.artist
                 }
             })
+
+            if(releases.data.releases.length===0){
+                releases=
+                    await axios.request({
+                        url: 'https://musicbrainz.org/ws/2/release',
+                        method: "get",
+                        params: {
+                            query: this.title.toLowerCase()
+                        }
+                    })
+            }
+
             let images = []
             if(releases.data.releases){
                 const songids = releases.data.releases.map((release)=>{
@@ -170,6 +193,7 @@ class Song {
                     }
                 }
             }
+            console.log(images)
             return images
         }
         catch(e){
@@ -251,7 +275,7 @@ class Song {
         try{
             const info =
                 await axios.request({
-                    url: 'https://api.deezer.com/search?q=artist:%22ollie%22%20track:%22feelings%22',
+                    url: 'https://api.deezer.com/search',
                     method: "get",
                     params: {
                         q: 'artist:'+'"'+this.artist+'"'+" "+"track:"+'"'+this.title+'"',

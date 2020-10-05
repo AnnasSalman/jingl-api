@@ -5,8 +5,12 @@ const path = require('path')
 const ID3Writer = require('browser-id3-writer');
 const Song = require('../models/Song')
 const axios = require('axios')
+const NodeID3 = require('node-id3')
+const YoutubeMp3Downloader = require("youtube-mp3-downloader");
+
 var router = express.Router();
 const publicPath = path.join(__dirname,'../public')
+const binariesPath = path.join(__dirname,'../binaries')
 
 const getImage = async(url) => {
     try{
@@ -20,34 +24,40 @@ const getImage = async(url) => {
     }
 }
 
+
 /* GET home page. */
 router.get('/', async(req, res, next) => {
   res.render('index', { title: 'Express' });
 });
 
+
 //QUERY PARAMS
 //1- title (optional)
 //2- artist (optional)
 //3- videourl (required)
-
 router.get('/download', async(req, res)=>{
 
-    const queries = req.query
-
     try{
-        const videoReadableStream = ytdl(req.query.videourl,
-            {
-                filter: "audioonly",
-                quality: "highestaudio",
-            })
+        const queries = req.query
+
+        const result = await ytdl.getInfo(req.query.videourl, {},)
+        const id = result.videoDetails.videoId
+
+        var YD = new YoutubeMp3Downloader({
+            "ffmpegPath": binariesPath+'/FFmpeg/bin/ffmpeg.exe',        // FFmpeg binary location
+            "outputPath": publicPath+'/audio/',                         // Output file location (default: the home directory)
+            "youtubeVideoQuality": "highestaudio",                      // Desired video quality (default: highestaudio)
+            "queueParallelism": 2,                                      // Download parallelism (default: 1)
+            "progressTimeout": 2000,                                    // Interval in ms for the progress reports (default: 1000)
+            "allowWebm": false                                          // Enable download from WebM sources (default: false)
+        });
+
         let fileName = queries.artist+' - '+ queries.title
         fileName = fileName.replace(/[/\\?%*:|"<>]/g, '');
-        const videoWritableStream = fs.createWriteStream(publicPath + '/audio/'+ fileName+'.mp3');
 
-        const stream = videoReadableStream.pipe(videoWritableStream);
+        YD.download(id, fileName+'.mp3');
 
-        stream.on('finish', async() => {
-            console.log('finish')
+        YD.on('finished',async()=>{
             const songBuffer = fs.readFileSync(publicPath + '/audio/'+fileName+'.mp3');
             const writer = new ID3Writer(songBuffer);
             writer.setFrame('TIT2', queries.title).setFrame('TPE1', queries.artist)
@@ -71,14 +81,6 @@ router.get('/download', async(req, res)=>{
             if(queries.genre){
                 writer.setFrame('TCON', queries.genre)
             }
-            if(queries.artistPicture){
-                const image = await getImage(queries.artistPicture)
-                writer.setFrame('APIC', {
-                    type: 8,
-                    data: image,
-                    description: 'Artist Image'
-                })
-            }
             if(queries.coverArt){
                 const image = await getImage(queries.coverArt)
                 writer.setFrame('APIC', {
@@ -87,11 +89,23 @@ router.get('/download', async(req, res)=>{
                     description: 'Cover Art'
                 })
             }
+            if(queries.artistPicture){
+                const image = await getImage(queries.artistPicture)
+                writer.setFrame('APIC', {
+                    type: 7,
+                    data: image,
+                    description: 'Artist Image'
+                })
+            }
             writer.addTag();
-
             const taggedSongBuffer = Buffer.from(writer.arrayBuffer);
             fs.writeFileSync(publicPath + '/audio/'+fileName+'.mp3', taggedSongBuffer);
-            res.send({fileName: fileName+'.mp3'});
+            res.send({fileName: fileName+'.mp3'})
+        })
+
+        YD.on("error", function(err, data) {
+            console.log(JSON.stringify(data));
+            res.send(err)
         });
     }
     catch(e){
@@ -158,18 +172,22 @@ router.get('/getcoverarts', async(req,res)=>{
     try{
         let response = []
         if (req.query.musicbrainz==='true'){
+            console.log('fetching from musicbrainz')
             const cover1 = await song.getCoverArtsFromMusicBrainz()
             response = [...response, ...cover1]
         }
         if (req.query.discogs==='true'){
+            console.log('fetching from discogs')
             const cover2 = await song.getCoverArtsFromDiscogs()
             response = [...response, ...cover2]
         }
         if (req.query.lastfm==='true'){
+            console.log('fetching from lastfm')
             const cover3 = await song.getCoverArtsFromLastFM()
             response = [...response, ...cover3]
         }
         if (req.query.deezer==='true'){
+            console.log('fetching from deezer')
             const cover4 = await song.getCoverArtsFromDeezer()
             response = [...response, ...cover4]
         }
