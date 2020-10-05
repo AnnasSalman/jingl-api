@@ -15,6 +15,7 @@
     "express": "~4.16.1",
     "ffmetadata": "^1.6.0",
     "ffmpeg": "0.0.4",
+    "ffmpeg-static": "^4.2.7",
     "http-errors": "~1.6.3",
     "morgan": "~1.9.1",
     "musicbrainz-api": "^0.5.2",

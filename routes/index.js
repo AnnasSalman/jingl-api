@@ -7,6 +7,7 @@ const Song = require('../models/Song')
 const axios = require('axios')
 const NodeID3 = require('node-id3')
 const YoutubeMp3Downloader = require("youtube-mp3-downloader");
+var pathToFfmpeg = require('ffmpeg-static');
 
 var router = express.Router();
 const publicPath = path.join(__dirname,'../public')
@@ -44,7 +45,8 @@ router.get('/download', async(req, res)=>{
         const id = result.videoDetails.videoId
 
         var YD = new YoutubeMp3Downloader({
-            "ffmpegPath": binariesPath+'/FFmpeg/bin/ffmpeg.exe',        // FFmpeg binary location
+            // "ffmpegPath": binariesPath+'/FFmpeg/bin/ffmpeg.exe',        // FFmpeg binary location
+            "ffmpegPath": pathToFfmpeg,
             "outputPath": publicPath+'/audio/',                         // Output file location (default: the home directory)
             "youtubeVideoQuality": "highestaudio",                      // Desired video quality (default: highestaudio)
             "queueParallelism": 2,                                      // Download parallelism (default: 1)
