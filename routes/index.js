@@ -228,7 +228,7 @@ router.get('/gettags', async(req,res)=>{
             }
         }
         catch(e){
-            res.send('INVALID SONG URL, try sending title and artist name as a query')
+            res.status(400).send('INVALID SONG URL, try sending title and artist name as a query')
         }
     }
     console.log(songArtist+'-'+songTitle)
