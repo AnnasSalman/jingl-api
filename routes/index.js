@@ -161,12 +161,12 @@ router.get('/getcoverarts', async(req,res)=>{
                     songTitle = stringArr[1].toLowerCase().trim()
                 }
                 else{
-                    res.send("Couldn't extract enough data about the music from the url, try adding artist and track separately")
+                    throw new Error()
                 }
             }
         }
         catch(e){
-            res.send('INVALID SONG URL, try sending title and artist name as a query')
+            res.status(400).send('INVALID SONG URL, try sending title and artist name as a query')
         }
     }
     console.log(songArtist+'-'+songTitle)
@@ -196,7 +196,7 @@ router.get('/getcoverarts', async(req,res)=>{
         res.send(response)
     }
     catch(e){
-        res.send(e)
+        res.status(400).send(e)
     }
 })
 
