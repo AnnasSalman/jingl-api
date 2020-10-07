@@ -139,14 +139,15 @@ router.get('/file', async(req, res)=>{
 //5- discogs (optional)(boolean)
 //6- lastfm (optional)(boolean)
 router.get('/getcoverarts', async(req,res)=>{
-    let songTitle = ''
-    let songArtist = ''
-    if(req.query.artist && req.query.title){
-        songTitle = req.query.title
-        songArtist = req.query.artist
-    }
-    else{
-        try{
+
+    try{
+        let songTitle = ''
+        let songArtist = ''
+        if(req.query.artist && req.query.title){
+            songTitle = req.query.title
+            songArtist = req.query.artist
+        }
+        else{
             const result = await ytdl.getInfo(req.query.videourl, {},)
             if (result.videoDetails.media && result.videoDetails.media.song && result.videoDetails.media.artist){
                 songTitle = result.videoDetails.media.song
@@ -165,13 +166,7 @@ router.get('/getcoverarts', async(req,res)=>{
                 }
             }
         }
-        catch(e){
-            res.status(400).send('INVALID SONG URL, try sending title and artist name as a query')
-        }
-    }
-    console.log(songArtist+'-'+songTitle)
-    const song = new Song(songArtist,songTitle)
-    try{
+        const song = new Song(songArtist,songTitle)
         let response = []
         if (req.query.musicbrainz==='true'){
             console.log('fetching from musicbrainz')
