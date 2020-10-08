@@ -162,7 +162,7 @@ router.get('/getcoverarts', async(req,res)=>{
                     songTitle = stringArr[1].toLowerCase().trim()
                 }
                 else{
-                    throw new Error()
+                    throw 'Link Error'
                 }
             }
         }
