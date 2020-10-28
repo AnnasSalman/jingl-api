@@ -191,6 +191,7 @@ router.get('/getcoverarts', async(req,res)=>{
         res.send(response)
     }
     catch(e){
+        console.log(e)
         res.status(400).send(e)
     }
 })

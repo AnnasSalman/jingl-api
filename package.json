@@ -23,6 +23,6 @@
     "nodemon": "^2.0.4",
     "pug": "2.0.0-beta11",
     "youtube-mp3-downloader": "^0.7.3",
-    "ytdl-core": "^3.2.2"
+    "ytdl-core": "^4.0.0"
   }
 }
